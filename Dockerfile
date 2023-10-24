@@ -39,6 +39,7 @@ RUN apt-get update \
         scikit-image==0.21.0 \
         tqdm==4.64.0 \
         transformers==4.22.2 \
+        wandb==0.15.12 \
     && pip install torch torchvision torchaudio \
         --index-url https://download.pytorch.org/whl/cu118 \
     && wget https://github.com/rinnakk/japanese-clip/releases/download/v0.2.0/japanese_clip-0.2.0-py3-none-any.whl \

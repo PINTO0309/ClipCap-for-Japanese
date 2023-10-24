@@ -1,0 +1,27 @@
+{
+    "name": "clip_jpn dev",
+    "image": "pinto0309/clip_jpn:latest",
+    "features": {
+        "ghcr.io/devcontainers/features/python:1": {},
+        "ghcr.io/devcontainers/features/github-cli:1": {}
+    },
+    "customizations": {
+        "vscode": {
+            "extensions": [
+				"usernamehw.errorlens",
+				"MS-CEINTL.vscode-language-pack-ja",
+				"ms-python.vscode-pylance",
+				"ms-python.python",
+				"redhat.vscode-yaml",
+				"docsmsft.docs-yaml",
+				"oderwat.indent-rainbow",
+				"mosapride.zenkaku",
+				"ryu1kn.partial-diff",
+				"ionutvmi.path-autocomplete",
+				"mechatroner.rainbow-csv",
+				"shardulm94.trailing-spaces"
+			]
+        }
+    },
+    "remoteUser": "user"
+}

@@ -46,8 +46,7 @@ class CLIP:
 
 
 class JapaneseClipCap(nn.Module):
-    def __init__(self, prefix_length: int, clip_length: Optional[int] = None, prefix_size: int = 512,
-                 num_layers: int = 8, mapping_type: str = "mlp"):
+    def __init__(self, prefix_length: int, clip_length: Optional[int] = None, prefix_size: int = 512, num_layers: int = 8, mapping_type: str = "mlp"):
 
         super().__init__()
         self.gpt = GPT()
@@ -58,8 +57,7 @@ class JapaneseClipCap(nn.Module):
             self.clip_project = MLP((prefix_size, (self.gpt_embedding_size * prefix_length) // 2,
                                      self.gpt_embedding_size * prefix_length))
         else:
-            self.clip_project = TransformerMapper(prefix_size, self.gpt_embedding_size, prefix_length,
-                                                  clip_length, num_layers)
+            self.clip_project = TransformerMapper(prefix_size, self.gpt_embedding_size, prefix_length, clip_length, num_layers)
 
     def get_dummy_token(self, batch_size: int, device: torch.device) -> torch.Tensor:
         return torch.zeros(batch_size, self.prefix_length, dtype=torch.int64, device=device)
@@ -188,8 +186,7 @@ class JapaneseClipCap(nn.Module):
         return output_text
 
 
-def train(dataset, dataloader, model, args,
-          lr: float = 2e-5, warmup_steps: int = 5000, output_dir: str = ".", output_prefix: str = ""):
+def train(dataset, dataloader, model, args, lr: float = 2e-5, warmup_steps: int = 5000, output_dir: str = ".", output_prefix: str = ""):
     train_dataset = dataset[0]
     train_dataloader = dataloader[0]
 
