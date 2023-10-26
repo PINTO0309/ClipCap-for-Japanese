@@ -144,3 +144,6 @@ val2014
 STAIR-captions
 checkpoints/
 wandb/
+
+*.mp4
+mlp_eval.json

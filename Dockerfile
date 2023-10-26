@@ -32,7 +32,7 @@ RUN apt-get update \
         mecab-python3==1.0.8 \
         unidic-lite==1.0.8 \
         numpy==1.23.3 \
-        opencv_python==4.6.0.66 \
+        opencv_python==4.8.1.78 \
         Pillow==9.2.0 \
         pycocoevalcap==1.2 \
         requests==2.28.1 \

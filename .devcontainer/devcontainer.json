@@ -25,6 +25,8 @@
     },
     "remoteUser": "user",
     "runArgs": [
-        "--gpus", "all"
+        "--gpus", "all",
+        "--device", "/dev/video0:/dev/video0:mwr",
+        "--privileged"
     ]
 }

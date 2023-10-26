@@ -16,6 +16,7 @@ from typing import Tuple, Optional, Union
 from dataset import *
 from model import *
 from transformers import T5Tokenizer, AutoModelForCausalLM, GPT2Model
+import copy
 
 DEBUG = False
 
@@ -261,6 +262,55 @@ def eval(dataset, dataloader, model, args, split="val"):
         json_res = json.dumps(results)
         f.write(json_res)
 
+def camera_inference(model, args):
+    model.eval()
+    results = []
+
+    cap = cv2.VideoCapture(0)
+    cap_fps = cap.get(cv2.CAP_PROP_FPS)
+    w = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+    h = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    fourcc = cv2.VideoWriter_fourcc('m', 'p', '4', 'v')
+    video_writer = cv2.VideoWriter(
+        filename='output.mp4',
+        fourcc=fourcc,
+        fps=cap_fps,
+        frameSize=(w, h),
+    )
+
+    with torch.no_grad():
+
+        while cap.isOpened():
+            res, img = cap.read()
+            if not res:
+                break
+            debug_image = copy.deepcopy(img)
+            inference_image = copy.deepcopy(img)
+            inference_image = cv2.resize(inference_image, (224,224))
+            inference_image = inference_image / 255.0
+            inference_image = inference_image.transpose(2,0,1)
+            inference_image = inference_image[np.newaxis, ...]
+            inference_image = inference_image.astype(np.float32)
+            inference_tensor = torch.from_numpy(inference_image).to('cuda')
+            output = model.predict(inference_tensor)
+            print(f"{output[0]}")
+            results.append({"caption": output[0]})
+
+            cv2.imshow("test", debug_image)
+            video_writer.write(debug_image)
+            key = cv2.waitKey(1)
+            if key == 27: # ESC
+                break
+
+    with open(f"{args.mapping_type}_eval.json", "w") as f:
+        json_res = json.dumps(results)
+        f.write(json_res)
+
+    if video_writer:
+        video_writer.release()
+    if cap:
+        cap.release()
+
 
 def main():
     parser = argparse.ArgumentParser()
@@ -279,6 +329,7 @@ def main():
     parser.add_argument('--normalize_prefix', dest='normalize_prefix', action='store_true')
     parser.add_argument('--wandb', action='store_true')
     parser.add_argument('--eval', action='store_true')
+    parser.add_argument('--camera', action='store_true')
     args = parser.parse_args()
 
     if args.wandb:
@@ -290,20 +341,23 @@ def main():
                             num_layers=args.num_layers, mapping_type=args.mapping_type)
 
     batch_size = args.bs
-    train_dataset, train_dataloader = None, None
-    train_dataset = StairCaptionDataset(tokenizer=model.gpt.tokenizer, clip_preprocess=model.clip.preprocess, split="train", prefix_length=args.prefix_length)
-    train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
 
-    val_dataset, val_dataloader = None, None
-    val_dataset = StairCaptionDataset(tokenizer=model.gpt.tokenizer, clip_preprocess=model.clip.preprocess, split="val", prefix_length=args.prefix_length)
-    val_dataloader = DataLoader(val_dataset, batch_size=batch_size, shuffle=True)
+    if not args.camera:
+        train_dataset, train_dataloader = None, None
+        train_dataset = StairCaptionDataset(tokenizer=model.gpt.tokenizer, clip_preprocess=model.clip.preprocess, split="train", prefix_length=args.prefix_length)
+        train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
 
-    test_dataset, test_dataloader = None, None
-    test_dataset = StairCaptionDataset(tokenizer=model.gpt.tokenizer, clip_preprocess=model.clip.preprocess, split="test", prefix_length=args.prefix_length)
-    test_dataloader = DataLoader(val_dataset, batch_size=batch_size, shuffle=True)
+        val_dataset, val_dataloader = None, None
+        val_dataset = StairCaptionDataset(tokenizer=model.gpt.tokenizer, clip_preprocess=model.clip.preprocess, split="val", prefix_length=args.prefix_length)
+        val_dataloader = DataLoader(val_dataset, batch_size=batch_size, shuffle=True)
 
-    dataset = (train_dataset, val_dataset, test_dataset)
-    dataloader = (train_dataloader, val_dataloader, test_dataloader)
+        test_dataset, test_dataloader = None, None
+        test_dataset = StairCaptionDataset(tokenizer=model.gpt.tokenizer, clip_preprocess=model.clip.preprocess, split="test", prefix_length=args.prefix_length)
+        test_dataloader = DataLoader(val_dataset, batch_size=batch_size, shuffle=True)
+
+        dataset = (train_dataset, val_dataset, test_dataset)
+        dataloader = (train_dataloader, val_dataloader, test_dataloader)
+
     if not args.eval:
         model_path = os.path.join(args.out_dir, f"{args.prefix}_best.pt")
         if os.path.exists(model_path):
@@ -311,10 +365,16 @@ def main():
         model = model.cuda()
         train(dataset, dataloader, model, args, output_dir=args.out_dir, output_prefix=args.prefix)
     else:
-        model_path = os.path.join(args.out_dir, f"{args.prefix}_latest.pt")
-        model.load_state_dict(torch.load(model_path))
-        model = model.cuda()
-        eval(dataset, dataloader, model, args)
+        if not args.camera:
+            model_path = os.path.join(args.out_dir, f"{args.prefix}_latest.pt")
+            model.load_state_dict(torch.load(model_path))
+            model = model.cuda()
+            eval(dataset, dataloader, model, args)
+        else:
+            model_path = os.path.join(args.out_dir, f"{args.prefix}_latest.pt")
+            model.load_state_dict(torch.load(model_path))
+            model = model.cuda()
+            camera_inference(model, args)
 
 
 if __name__ == '__main__':
