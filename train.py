@@ -278,16 +278,19 @@ def camera_inference(model, args):
         frameSize=(w, h),
     )
 
-    with torch.no_grad():
+    mean = np.asarray([0.485, 0.456, 0.406], dtype=np.float32)
+    std = np.asarray([0.229, 0.224, 0.225], dtype=np.float32)
 
+    with torch.no_grad():
         while cap.isOpened():
             res, img = cap.read()
             if not res:
                 break
             debug_image = copy.deepcopy(img)
             inference_image = copy.deepcopy(img)
-            inference_image = cv2.resize(inference_image, (224,224))
-            inference_image = inference_image / 255.0
+            inference_image = cv2.resize(inference_image, (224, 224))
+            inference_image = inference_image[..., ::-1]
+            inference_image = (inference_image / 255.0 - mean) / std
             inference_image = inference_image.transpose(2,0,1)
             inference_image = inference_image[np.newaxis, ...]
             inference_image = inference_image.astype(np.float32)
